@@ -1,6 +1,28 @@
 const AVATAR_DEFAULT = 'https://a.wattpad.com/useravatar/calicocat1013.128.610848.jpg';
 let container = document.body;
 
+let dataSportsman = [{
+	name: "Test1",
+	age: 65,
+	avatar: AVATAR_DEFAULT,
+	gender: true,
+	height: 170,
+	weight: 62.5,
+	ccal: 0,
+	exercise: [],
+	trainer: null
+},{
+	name: "Test2",
+	age: 45,
+	avatar: AVATAR_DEFAULT,
+	gender: false,
+	height: 188,
+	weight: 83.1,
+	ccal: 0,
+	exercise: [],
+	trainer: null
+}];
+
 const error = (name, text) => {
 	let err = new Error(text);
 	err.name = name;
@@ -15,10 +37,15 @@ class Login{
 		// request -> response -> create new User(data)
 		new Staff({
 			name: "Gleb",
-			gender: true
+			gender: true,
+			sportsmanList: dataSportsman
 		});
 	}
 	render(){
+		let button = document.querySelector(".login-button");
+		if(button !== null) {
+			button.removeEventListener("click", this.logIn);
+		}
 		container.innerHTML = `
 		<div class="login">
 			<input type="text" placeholder="Login">
@@ -29,7 +56,6 @@ class Login{
 	}
 }
 new Login();
-
 
 
 class User{
@@ -77,10 +103,78 @@ class User{
 	}
 }
 
+const Exercise = (exercises) => {
+	let markup = ``;
+	exercises.map((exercise) => {
+		markup += `<div class="exercise">
+				${exercise.ex.name}
+				<p>${exercise.ex.description}</p>
+				<p>Count: ${exercise.count}</p>
+			</div>`;
+	});
+	return markup;
+};
+
+// Для отрисовки блока спортсменов в Staff
+class SportsmanBlock{
+	constructor(sportsman, index, renderStaff, trainer = true){
+		this.renderStaff = renderStaff;
+		this.sportsman = sportsman;
+		let button = document.createElement("button");
+		button.innerHTML = "Create exercise";
+		button.classList.add("create");
+
+		this.markup = `
+			<div class="sportsman-block sportsman-block-${index}" 
+			data-index="${index}">
+				<div class="name">
+					${this.sportsman.name}
+				</div>
+				<div class="arrow"></div>
+				<div class="extend">	
+					${if(trainer) Exercise(this.sportsman.exercise) else {
+						${Menu(this.sportsman.menu)};
+					}}
+				</div>
+			</div>`;
+			setTimeout(() => {
+				document.querySelector(`.sportsman-block-${index}`).appendChild(button);
+				
+				// bind нужен для того, чтобы this ссылался на текущий объект SportsmanBlock'a
+				button.addEventListener("click", this.addExercise.bind(this));
+			
+			}, 0)
+	}
+
+	// Обработчик события добавления упражнения
+	addExercise(){
+		this.sportsman.exercise.push({
+			ex: {
+				name: "Отжимание",
+				description: "Упор лежа, сгибание\разгибания рук."
+			},
+			count: Math.round(Math.random() * 100)
+		});
+
+		// Вызываем рендер интерфейса Staff
+		this.renderStaff();
+	}
+
+	render(){
+		return this.markup;
+	}
+}
+
+
 class Staff extends User{
 	constructor(data){
 		super(data); // this.render();
-		this.sportsmanList = data.sportsmanList || [];
+		if(Array.isArray(data.sportsmanList) 
+			&& data.sportsmanList.length > 0){
+			this.sportsmanList = data.sportsmanList;
+		} else {
+			this.sportsmanList = [];
+		};
 		this.qualification = data.qualification || 'No qualification';
 		this.rank = data.rank || 0;
 		this.render();
@@ -96,22 +190,18 @@ class Staff extends User{
 		this.render();
 	}
 	render(){
+		// Вызываем render User'a, чтобы отрисовать пол, аватар, имя и возраст
 		super.render();
+
+		// Функция отрисовки списка спортсменов
 		const renderSportmanList = () => {
 			let markup = ``;
-			this.sportsmanList.map((sportsman) => {
-				markup += `
-					<div class="sportsman-block">
-						<div class="name">
-							${sportsman.name}
-						</div>
-						<div class="arrow"></div>
-						<div class="extend">
-							Дописать расширенный вариант
-							При открытии стрелки
-						</div>
-					</div>
-				`;
+			this.sportsmanList.map((sportsman, index) => {
+				// Вызываем функцию отрисовки БЛОКА с данными спортсмена
+				// this.render - для перерисовки при нажатии на кнопку
+				// bind для привязки контекста
+				markup += new SportsmanBlock(sportsman, index, this.render.bind(this)).render();
+
 			})
 			return markup;
 		}
